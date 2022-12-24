@@ -1,9 +1,10 @@
 import math
-import pandas as pd
 from typing import Dict, List
+
+import pandas as pd
 from pypair.association import categorical_categorical
 
-from .utils import logger, get_all_possible_partitions
+from .utils import get_all_possible_partitions
 
 
 def get_bin_score_categorical_categorical(category_to_bin: Dict, binning_column, target_column) -> float:
@@ -18,7 +19,7 @@ def _apply_bin_on_column(column, single_bin, bin_key):
 
 def _get_optimal_bins(rare_categories, binning_column, target_column, bins_keys):
     # we want the bins to be at least with 2 categories. (3 categories can't be split to two bin)
-    if 2 <= len(rare_categories) <= 3:  # TODO: maybe check minimum frequency
+    if len(rare_categories) in [2, 3]:  # TODO: maybe check minimum frequency
         return [rare_categories]
 
     one_bin_score = get_bin_score_categorical_categorical({c: bins_keys[0] for c in rare_categories}, binning_column,
@@ -66,10 +67,8 @@ def find_optimal_binning(dtf_train: pd.DataFrame, target_column_name: str, categ
                                    name=categorical_column_name).apply(str)
     target_column = pd.Series(dtf_train[target_column_name].factorize()[0], name=target_column_name).apply(str)
 
-    total_rows = categorical_column.count()
-    value_counts = categorical_column.value_counts()
-    categories = list(value_counts.keys())
-    values_frequencies = (value_counts / total_rows).sort_values()
+    value_frequencies = categorical_column.value_counts(normalize=True).sort_values()
+    categories = list(value_frequencies.keys())
     num_categories = len(categories)
     bins_keys = list(map(str, range(num_categories, num_categories * 2)))
     initial_bin_score = get_bin_score_categorical_categorical({c: bins_keys[i] for i, c in enumerate(categories)},
@@ -78,14 +77,14 @@ def find_optimal_binning(dtf_train: pd.DataFrame, target_column_name: str, categ
 
     # TODO: better statistic on what range to check
     # TODO: maybe wa want maximum number of categories for performances
-    max_frequency = 0.1
+    max_frequency = 0.05
 
     max_binning_score = 0
     best_binning = None
-    for i, (category, frequency) in enumerate(list(values_frequencies.items())[1:]):
+    for i, (category, frequency) in enumerate(list(value_frequencies.items())[1:]):
         if frequency > max_frequency:
             break
-        rare_categories = values_frequencies[values_frequencies <= frequency].keys()
+        rare_categories = value_frequencies[value_frequencies <= frequency].keys()
         bins = _get_optimal_bins(list(rare_categories), categorical_column, target_column, bins_keys)
         bin_score = get_bin_score_categorical_categorical(get_category_to_bin(bins, bins_keys), categorical_column,
                                                           target_column)
