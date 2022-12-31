@@ -27,24 +27,3 @@ def get_all_possible_partitions(group):
     for i in range(count_splits):
         possible_splits.append([list(subsets[i]), [e for e in group if e not in subsets[i]]])
     return possible_splits
-
-
-def get_all_possible_splits_by_order(group):
-    if len(group) == 1:
-        return [[group]]
-    possible_splits = [[group]]
-    for i in range(1, len(group)):
-        subset = group[:i]
-        next_subsets = get_all_possible_splits_by_order(group[i:])
-        for n in next_subsets:
-            possible_splits.append([subset, *n])
-    return possible_splits
-
-
-def get_all_possible_bins(group):
-    bins_options = []
-    for perm in permutations(group):
-        possible_bins = get_all_possible_splits_by_order(perm)
-        bins_options.extend(possible_bins)
-    print(len(bins_options))
-    return bins_options

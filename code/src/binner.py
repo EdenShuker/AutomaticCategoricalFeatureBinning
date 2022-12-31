@@ -6,10 +6,6 @@ from more_itertools import flatten
 from .utils import get_all_possible_partitions
 
 
-def _apply_bin_on_column(column, single_bin, bin_key):
-    return column.apply(lambda x: bin_key if x in single_bin else x)
-
-
 def _get_optimal_bins(rare_categories, contingency_table):
     # we want the bins to be at least with 2 categories. (3 categories can't be split to two bin)
     if 2 <= len(rare_categories) <= 3:  # TODO: maybe check minimum frequency
@@ -36,15 +32,6 @@ def _get_optimal_bins(rare_categories, contingency_table):
                                _get_contingency_table_after_binning(contingency_table, categories, best_bins[0],
                                                                     [best_bins[0]]))
         ]
-
-
-def get_category_to_bin(bins: List[List], bins_keys: List) -> Dict:
-    category_to_bin = {}
-    for i, b in enumerate(bins):
-        for c in b:
-            category_to_bin[c] = bins_keys[i]
-
-    return category_to_bin
 
 
 def _get_contingency_table_after_binning(original_table: pd.DataFrame, categories: List, rare_categories: List,

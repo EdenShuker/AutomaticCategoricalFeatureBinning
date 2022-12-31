@@ -27,7 +27,6 @@ def main():
     # args = parse_args()
     train_filepath = Path(__file__).parent.parent.parent / "data" / "mushrooms.csv"
     dtf_train = load_dataset(str(train_filepath))
-    print(len(dtf_train))
     # print(dtf_train["birth_state"].value_counts(normalize=True))
     # find_optimal_binning(dtf_train, "party_cd", "birth_state")
     find_optimal_binning(dtf_train, "class", "gill-color")
