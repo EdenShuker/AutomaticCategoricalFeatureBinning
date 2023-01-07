@@ -6,6 +6,11 @@ from more_itertools import flatten
 from .utils import get_all_possible_partitions
 
 
+def apply_binning_on_column(binning_column, bins):
+    category_to_bin = {c: b[0] for b in bins for c in b}
+    return binning_column.apply(lambda x: category_to_bin[x] if x in category_to_bin else x)
+
+
 def _get_optimal_bins(rare_categories, contingency_table):
     # we want the bins to be at least with 2 categories. (3 categories can't be split to two bin)
     if 2 <= len(rare_categories) <= 3:  # TODO: maybe check minimum frequency
@@ -74,7 +79,7 @@ def find_optimal_binning(dtf_train: pd.DataFrame, target_column_name: str, categ
     # TODO: maybe wa want maximum number of categories for performances
     max_frequency = 0.1
 
-    max_binning_score = initial_bin_score
+    max_binning_score = 0
     best_binning = []
     for i, (category, frequency) in enumerate(list(values_frequencies.items())[1:]):
         if frequency > max_frequency:
@@ -89,3 +94,4 @@ def find_optimal_binning(dtf_train: pd.DataFrame, target_column_name: str, categ
 
     print(f"Best binning: {best_binning}")
     print(f"Binning score: {max_binning_score}")
+    return best_binning

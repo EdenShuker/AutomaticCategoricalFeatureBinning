@@ -27,3 +27,8 @@ def get_all_possible_partitions(group):
     for i in range(count_splits):
         possible_splits.append([list(subsets[i]), [e for e in group if e not in subsets[i]]])
     return possible_splits
+
+
+def _search_for_categorical_feature(dtf_train):
+    for col in dtf_train.columns:
+        print(col, len(dtf_train[col].value_counts()))
