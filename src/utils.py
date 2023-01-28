@@ -12,14 +12,6 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 
-def load_dataset(train_dataset_file: str) -> pd.DataFrame:
-    try:
-        data_frame = pd.read_csv(train_dataset_file, index_col='Id')
-    except Exception:
-        data_frame = pd.read_csv(train_dataset_file)
-    return data_frame
-
-
 def get_all_possible_partitions_without_frequency(group):
     subsets = [v for a in range(len(group)) for v in combinations(group, a)]
     count_splits = math.ceil(len(subsets) / 2)
