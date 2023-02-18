@@ -32,12 +32,12 @@ def encode_categorical_data(x_train: DataFrame, y_train: Series, x_test: DataFra
     x_train_transformed = transformer.fit_transform(x_train)
     if isinstance(x_train_transformed, csr_matrix):
         x_train_transformed = x_train_transformed.toarray()
-    x_train_transformed = pd.DataFrame(x_train_transformed, columns=transformer.get_feature_names())
+    x_train_transformed = pd.DataFrame(x_train_transformed, columns=transformer.get_feature_names_out())
 
     x_test_transformed = transformer.transform(x_test)
     if isinstance(x_test_transformed, csr_matrix):
         x_test_transformed = x_test_transformed.toarray()
-    x_test_transformed = pd.DataFrame(x_test_transformed, columns=transformer.get_feature_names())
+    x_test_transformed = pd.DataFrame(x_test_transformed, columns=transformer.get_feature_names_out())
 
     if y_train.dtype.name == 'object':
         le = LabelEncoder()
