@@ -7,6 +7,8 @@ import pandas as pd
 type_to_imputer_strategy = {'float64': 'mean', 'object': 'most_frequent'}
 SEED = 42
 TEST_SIZE = 0.25
+DEFAULT_MIN_UNIQUE = 5
+DEFAULT_MAX_UNIQUE = 12
 
 
 def get_all_possible_partitions(group: List) -> List[List[List[int]]]:
@@ -28,7 +30,7 @@ def get_categorical_columns_by_range_of_uniqueness(df: pd.DataFrame, min_unique:
 
 
 def load_datasets(dataset_to_target: Dict[str, str]) -> pd.DataFrame:
-    read_dataset = lambda x: pd.read_csv(f'data/{x}')
+    read_dataset = lambda x: pd.read_csv(f'../data/{x}')
 
     datasets_df = pd.DataFrame([], columns=['Name', 'df', 'Target Column'])
 

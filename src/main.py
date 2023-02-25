@@ -1,3 +1,4 @@
+import argparse
 import time
 import warnings
 from typing import List, Tuple, Dict
@@ -10,7 +11,8 @@ from src.alt_binning import find_optimal_binning_without_frequency
 from src.binner import apply_binning_on_column
 from src.data_preprocessing import preprocess_data, impute_dataframe
 from src.evaluation import get_score_of_classification_model
-from src.utils import get_categorical_columns_by_range_of_uniqueness, SEED, TEST_SIZE, load_datasets
+from src.utils import get_categorical_columns_by_range_of_uniqueness, SEED, TEST_SIZE, load_datasets, \
+    DEFAULT_MAX_UNIQUE, DEFAULT_MIN_UNIQUE
 
 warnings.simplefilter('ignore')
 
@@ -80,23 +82,27 @@ def get_results(datasets_df: pd.DataFrame, min_unique: int, max_unique: int):
     return model_records
 
 
-def main():
-    min_unique = 5
-    max_unique = 12
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset_name", type=str,
+                        help="Dataset name, stored under dataset_name/dataset_name_dataset.csv")
+    parser.add_argument("--target_column_name", type=str, help="Column name of the target")
+    parser.add_argument("--min_unique", type=int, default=DEFAULT_MIN_UNIQUE, help="Minimum feature unique values")
+    parser.add_argument("--max_unique", type=int, default=DEFAULT_MAX_UNIQUE, help="Maximum feature unique values")
 
-    dataset_to_target = {
-        # 'banking': 'y',
-        # 'churn_modeling': 'Exited'
-        # 'home_credit_risk': 'Target',
-        # 'titanic': 'Survived'
-    }
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    dataset_to_target = {args.dataset_name: args.target_column_name}
     datasets_df = load_datasets(dataset_to_target=dataset_to_target)
 
-    model_records = get_results(datasets_df, min_unique=min_unique, max_unique=max_unique)
+    model_records = get_results(datasets_df, min_unique=args.min_unique, max_unique=args.max_unique)
     results = pd.DataFrame(data=model_records,
                            columns=["Dataset", "Column Name", "Optimal Binning Model Score", "Score without Binning",
-                                    "og_unique",
-                                    "og_n_unique", "new_unique", "n_unique", "total_time"])
+                                    "og_unique", "og_n_unique", "new_unique", "n_unique", "total_time"])
     results["score_diff"] = results["Optimal Binning Model Score"] - results["Score without Binning"]
     print(results)
 
