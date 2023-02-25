@@ -1,83 +1,104 @@
-import argparse
+import time
+import warnings
+from typing import List, Tuple, Dict
 
 import pandas as pd
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 
-from src.binner import find_optimal_binning, apply_binning_on_column
-from src.data_preprocessing import preprocess_data
-from src.test_binning import get_score_of_classification_model, get_score_of_regression_model
-from src.utils import load_dataset
+from src.alt_binning import find_optimal_binning_without_frequency
+from src.binner import apply_binning_on_column
+from src.data_preprocessing import preprocess_data, impute_dataframe
+from src.evaluation import get_score_of_classification_model
+from src.utils import get_categorical_columns_by_range_of_uniqueness, SEED, TEST_SIZE, load_datasets
 
-SEED = 42
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--train_file_path", default="../data/application_train.csv", type=str,
-                        help="Path of the dataset train filepath csv")
-    parser.add_argument("--target_column_name", default="TARGET", type=str, help="Column name of the target")
-    parser.add_argument("--categorical_column_name", default="ORGANIZATION_TYPE", type=str,
-                        help="The categorical feature for applying binning on")
-    parser.add_argument("--task", default="classification", type=str, help="Classification or Regression")
-
-    return parser.parse_args()
+warnings.simplefilter('ignore')
 
 
-def main():
-    args = parse_args()
-    df = load_dataset(args.train_file_path)
+def _test_single_column(train_df: pd.DataFrame, test_df: pd.DataFrame, target_column_name: str,
+                        categorical_column_name: str) -> Tuple[float, List[List[int]], float]:
+    start_time = time.time()
+    optimal_binning = find_optimal_binning_without_frequency(train_df, target_column_name, categorical_column_name)
+    total_time = time.time() - start_time
 
-    df_columns = df.columns
-    nan_columns_summary = df.isnull().sum() != 0
-    nan_columns = nan_columns_summary.index[nan_columns_summary].tolist()
+    df_train_copy = train_df.copy()
+    df_test_copy = test_df.copy()
+    new_col_train = apply_binning_on_column(df_train_copy[categorical_column_name], optimal_binning)
+    df_train_copy[categorical_column_name] = new_col_train
+    new_col_test = apply_binning_on_column(df_test_copy[categorical_column_name], optimal_binning)
+    df_test_copy[categorical_column_name] = new_col_test
 
-    type_to_imputer_startegy = {'float64': 'mean', 'object': 'most_frequent'}
+    x_train, y_train, x_test, y_test = preprocess_data(df_train_copy, df_test_copy, target_column_name)
+    with_binning_score = get_score_of_classification_model(x_train, y_train, x_test, y_test)
 
-    transformers = []
-    for feature in df_columns:
-        if feature in nan_columns:
-            transformers.append(
-                (f'{feature}_imputer', SimpleImputer(strategy=type_to_imputer_startegy[df[feature].dtype.name]),
-                 [feature]))
-        else:
-            transformers.append((f'{feature}_keeper', 'passthrough', [feature]))
+    return with_binning_score, optimal_binning, total_time
 
-    column_trans = ColumnTransformer(transformers)
-    df_transformed_data = column_trans.fit_transform(df)
-    df_transformed = pd.DataFrame(data=df_transformed_data, columns=df_columns)
 
-    df_train, df_test = train_test_split(df_transformed, test_size=0.25, random_state=SEED)
+def _examine_dataset(df: pd.DataFrame, target_column_name: str, dataset_name: str, min_unique: int, max_unique: int) -> \
+        Tuple[Dict, float]:
+    df_transformed = impute_dataframe(df=df)
+
+    df_train, df_test = train_test_split(df_transformed, test_size=TEST_SIZE, random_state=SEED)
     df_train.reset_index(drop=True, inplace=True)
     df_test.reset_index(drop=True, inplace=True)
 
-    x_train, y_train, x_test, y_test = preprocess_data(df_train, df_test, args.target_column_name)
+    x_train, y_train, x_test, y_test = preprocess_data(df_train, df_test, target_column_name)
+    score_without_binning = round(get_score_of_classification_model(x_train=x_train, y_train=y_train, x_test=x_test,
+                                                                    y_test=y_test), 3)
 
-    if args.task == 'classification':
-        score_without_binning = get_score_of_classification_model(x_train=x_train, y_train=y_train, x_test=x_test,
-                                                                  y_test=y_test)
-    else:
-        score_without_binning = get_score_of_regression_model(x_train=x_train, y_train=y_train, x_test=x_test,
-                                                              y_test=y_test)
+    categorical_columns = get_categorical_columns_by_range_of_uniqueness(df_train, min_unique=min_unique,
+                                                                         max_unique=max_unique,
+                                                                         target_column=target_column_name)
+    results_summary = {}
 
-    print(f"The score without binning is: {score_without_binning:.3f}")
+    for column in tqdm(categorical_columns, desc=f"{dataset_name} Progress"):
+        with_binning_score, optimal_binning, total_time = _test_single_column(df_train, df_test, target_column_name,
+                                                                              categorical_column_name=column)
+        results_summary[column] = {"score": round(with_binning_score, 3),
+                                   "og_unique": sorted(df_train[column].unique()),
+                                   "og_n_unique": df_train[column].nunique(),
+                                   "new_unique": optimal_binning,
+                                   "n_unique": len(optimal_binning),
+                                   "total_time": total_time}
 
-    optimal_binning = find_optimal_binning(df_train, args.target_column_name, args.categorical_column_name)
+    return results_summary, score_without_binning
 
-    category_values = df_train[args.categorical_column_name].factorize()[1]
-    optimal_binning_original = [[category_values[i] for i in b] for b in optimal_binning]
 
-    df_train_copy = df_train.copy()
-    df_test_copy = df_test.copy()
-    new_col_train = apply_binning_on_column(df_train_copy[args.categorical_column_name], optimal_binning_original)
-    df_train_copy[args.categorical_column_name] = new_col_train
-    new_col_test = apply_binning_on_column(df_test_copy[args.categorical_column_name], optimal_binning_original)
-    df_test_copy[args.categorical_column_name] = new_col_test
+def get_results(datasets_df: pd.DataFrame, min_unique: int, max_unique: int):
+    model_records = []
 
-    x_train, y_train, x_test, y_test = preprocess_data(df_train_copy, df_test_copy, args.target_column_name)
-    with_binning_score = get_score_of_classification_model(x_train, y_train, x_test, y_test)
-    print(f"The score with binning is: {with_binning_score:.3f}")
+    for idx, row in tqdm(datasets_df.iterrows(), desc="Datasets Progress", total=len(datasets_df)):
+        success_columns, score_without_binning = _examine_dataset(df=row.df, dataset_name=row["Name"],
+                                                                  target_column_name=row["Target Column"],
+                                                                  min_unique=min_unique, max_unique=max_unique)
+        for col in success_columns:
+            model_records.append([row["Name"], col, success_columns[col]["score"], score_without_binning,
+                                  success_columns[col]["og_unique"], success_columns[col]["og_n_unique"],
+                                  success_columns[col]["new_unique"], success_columns[col]["n_unique"],
+                                  success_columns[col]["total_time"]])
+
+    return model_records
+
+
+def main():
+    min_unique = 5
+    max_unique = 12
+
+    dataset_to_target = {
+        # 'banking': 'y',
+        # 'churn_modeling': 'Exited'
+        # 'home_credit_risk': 'Target',
+        # 'titanic': 'Survived'
+    }
+    datasets_df = load_datasets(dataset_to_target=dataset_to_target)
+
+    model_records = get_results(datasets_df, min_unique=min_unique, max_unique=max_unique)
+    results = pd.DataFrame(data=model_records,
+                           columns=["Dataset", "Column Name", "Optimal Binning Model Score", "Score without Binning",
+                                    "og_unique",
+                                    "og_n_unique", "new_unique", "n_unique", "total_time"])
+    results["score_diff"] = results["Optimal Binning Model Score"] - results["Score without Binning"]
+    print(results)
 
 
 if __name__ == '__main__':

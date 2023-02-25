@@ -6,7 +6,7 @@ from typing import List
 import pandas as pd
 
 
-def mutual_information(table, r_margs, k_margs, r, k, n):
+def mutual_information(table, r_margs, k_margs, r: int, k: int, n: int) -> float:
     """
     The `mutual information <https://en.wikipedia.org/wiki/Mutual_information>`_ between
     two variables :math:`X` and :math:`Y` is denoted as :math:`I(X;Y)`.  :math:`I(X;Y)` is
@@ -27,7 +27,7 @@ def mutual_information(table, r_margs, k_margs, r, k, n):
     return mi
 
 
-def uncertainty_coefficient(contingency_table: List[List]):
+def uncertainty_coefficient(contingency_table: List[List]) -> float:
     """
     The `uncertainty coefficient <https://en.wikipedia.org/wiki/Uncertainty_coefficient>`_ :math:`U(X|Y)`
     for two variables :math:`X` and :math:`Y` is defined as follows.
@@ -66,7 +66,7 @@ def uncertainty_coefficient(contingency_table: List[List]):
     return e
 
 
-def _get_contingency_table(categorical_column, target_column):
+def _get_contingency_table(categorical_column: str, target_column: str) -> pd.DataFrame:
     df = pd.DataFrame({'a': categorical_column, 'b': target_column})
     a_values = sorted([v for v in df.a.unique() if pd.notna(v)])
     b_values = sorted([v for v in df.b.unique() if pd.notna(v)])

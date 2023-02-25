@@ -1,3 +1,5 @@
+from typing import List
+
 import pandas as pd
 
 from src.association import _get_contingency_table
@@ -6,7 +8,7 @@ from src.utils import get_all_possible_partitions
 
 
 def find_optimal_binning_without_frequency(dtf_train: pd.DataFrame, target_column_name: str,
-                                           categorical_column_name: str):
+                                           categorical_column_name: str) -> List[List[int]]:
     categorical_column = pd.Series(dtf_train[categorical_column_name].factorize()[0], name=categorical_column_name)
     target_column = pd.Series(dtf_train[target_column_name].factorize()[0], name=target_column_name)
 
@@ -22,7 +24,7 @@ def find_optimal_binning_without_frequency(dtf_train: pd.DataFrame, target_colum
     return best_binning
 
 
-def _get_optimal_bins_without_frequency(categories, contingency_table):
+def _get_optimal_bins_without_frequency(categories: List, contingency_table: pd.DataFrame) -> List[List[int]]:
     one_bin_score = _get_bin_score_categorical_categorical([categories], contingency_table)
     max_two_bins_score = 0
     best_bins = None
