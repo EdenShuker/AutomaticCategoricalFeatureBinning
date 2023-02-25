@@ -7,8 +7,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
-from src.alt_binning import find_optimal_binning_without_frequency
-from src.binner import apply_binning_on_column
+from src.binner import apply_binning_on_column, find_optimal_binning
 from src.data_preprocessing import preprocess_data, impute_dataframe
 from src.evaluation import get_score_of_classification_model
 from src.utils import get_categorical_columns_by_range_of_uniqueness, SEED, TEST_SIZE, load_datasets, \
@@ -20,7 +19,7 @@ warnings.simplefilter('ignore')
 def _test_single_column(train_df: pd.DataFrame, test_df: pd.DataFrame, target_column_name: str,
                         categorical_column_name: str) -> Tuple[float, List[List[int]], float]:
     start_time = time.time()
-    optimal_binning = find_optimal_binning_without_frequency(train_df, target_column_name, categorical_column_name)
+    optimal_binning = find_optimal_binning(train_df, target_column_name, categorical_column_name)
     total_time = time.time() - start_time
 
     df_train_copy = train_df.copy()
