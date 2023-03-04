@@ -9,19 +9,15 @@ Eden Shuker 208991406
 Make sure your current directory is the assignment folder.
 
 Install requirements:
-`pip install requirements.txt`
-
-Add the project directory to your PYTHONPATH:
-
-`export PYTHONPATH="${PYTHONPATH}:/your/source/root"`
-
-Or if you open the project from pycharm - mark project directory as source root
+`pip install -r requirements.txt`
 
 The behavior controlled with a commandline switch.
-For help in using cli use: `python main.py --help`
+For help in using cli use: `python -m src.main --help`
 
 ### Running our Auto-Binning algorithm on a dataset
 
 ```text
-python main.py --dataset_name titanic --target_column_name Survived 
+python -m src.main --dataset_name titanic --target_column_name Survived 
 ```
+
+You can also run the Jupyter Notebook `auto_binning.ipynb` 

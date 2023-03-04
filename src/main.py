@@ -83,9 +83,9 @@ def get_results(datasets_df: pd.DataFrame, min_unique: int, max_unique: int):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_name", type=str,
+    parser.add_argument("--dataset_name", type=str, required=True,
                         help="Dataset name, stored under dataset_name/dataset_name_dataset.csv")
-    parser.add_argument("--target_column_name", type=str, help="Column name of the target")
+    parser.add_argument("--target_column_name", type=str, required=True, help="Column name of the target")
     parser.add_argument("--min_unique", type=int, default=DEFAULT_MIN_UNIQUE, help="Minimum feature unique values")
     parser.add_argument("--max_unique", type=int, default=DEFAULT_MAX_UNIQUE, help="Maximum feature unique values")
 
